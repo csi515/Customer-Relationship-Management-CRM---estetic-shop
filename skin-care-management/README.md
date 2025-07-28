@@ -46,6 +46,50 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 npm run dev
 ```
 
+## 배포
+
+### GitHub Pages 배포
+
+1. **GitHub 저장소 생성**
+   - GitHub에서 새 저장소를 생성하세요
+   - 저장소 이름을 `skin-care-management`로 설정하세요
+
+2. **package.json 수정**
+   - `package.json`의 `homepage` 필드를 실제 GitHub 사용자명으로 수정하세요:
+   ```json
+   "homepage": "https://your-actual-username.github.io/skin-care-management"
+   ```
+
+3. **코드 푸시**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/your-username/skin-care-management.git
+   git push -u origin main
+   ```
+
+4. **GitHub Pages 배포**
+   ```bash
+   npm run deploy
+   ```
+
+5. **GitHub Pages 설정**
+   - GitHub 저장소 설정에서 Pages 섹션으로 이동
+   - Source를 "Deploy from a branch"로 설정
+   - Branch를 "gh-pages"로 설정
+   - Save 클릭
+
+6. **배포 확인**
+   - 몇 분 후 `https://your-username.github.io/skin-care-management`에서 앱이 실행되는지 확인
+
+### Vercel 배포
+1. [Vercel](https://vercel.com)에 GitHub 계정으로 로그인
+2. 프로젝트를 import
+3. 환경 변수 설정
+4. 배포
+
 ## Supabase 설정
 
 ### 1. 데이터베이스 스키마
@@ -380,20 +424,6 @@ src/
 - 모든 테이블은 `user_id`를 포함
 - RLS(Row Level Security)를 통한 사용자별 데이터 분리
 - 로그인한 사용자의 데이터만 접근 가능
-
-## 배포
-
-### Vercel 배포
-1. [Vercel](https://vercel.com)에 GitHub 계정으로 로그인
-2. 프로젝트를 import
-3. 환경 변수 설정
-4. 배포
-
-### GitHub Pages 배포
-```bash
-npm run build
-# dist 폴더를 GitHub Pages에 배포
-```
 
 ## 라이선스
 
