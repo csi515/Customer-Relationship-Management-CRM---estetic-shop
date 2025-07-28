@@ -366,24 +366,38 @@ $$ LANGUAGE plpgsql;
 ## 프로젝트 구조
 
 ```
-src/
-├── components/          # 공통 컴포넌트
-│   ├── Layout.jsx      # 레이아웃 컴포넌트
-│   └── LoadingSpinner.jsx
-├── contexts/           # React Context
-│   └── AuthContext.jsx # 인증 상태 관리
-├── lib/               # 유틸리티 및 설정
-│   └── supabase.js    # Supabase 클라이언트
-├── pages/             # 페이지 컴포넌트
-│   ├── Login.jsx
-│   ├── Dashboard.jsx
-│   ├── Customers.jsx
-│   ├── Products.jsx
-│   ├── Reservations.jsx
-│   ├── Purchases.jsx
-│   ├── Transactions.jsx
-│   └── Settings.jsx
-└── App.jsx            # 메인 앱 컴포넌트
+skin-care-management/
+├── public/                 # 정적 파일
+│   ├── index.html         # 메인 HTML 파일
+│   ├── 404.html          # GitHub Pages SPA 라우팅
+│   └── vite.svg          # 아이콘
+├── src/                   # 소스 코드
+│   ├── components/        # 공통 컴포넌트
+│   │   ├── Layout.jsx     # 레이아웃 컴포넌트
+│   │   └── LoadingSpinner.jsx
+│   ├── contexts/          # React Context
+│   │   └── AuthContext.jsx # 인증 상태 관리
+│   ├── lib/              # 유틸리티 및 설정
+│   │   └── supabase.js   # Supabase 클라이언트
+│   ├── pages/            # 페이지 컴포넌트
+│   │   ├── Login.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── Customers.jsx
+│   │   ├── Products.jsx
+│   │   ├── Reservations.jsx
+│   │   ├── Purchases.jsx
+│   │   ├── Transactions.jsx
+│   │   └── Settings.jsx
+│   ├── App.jsx           # 메인 앱 컴포넌트
+│   ├── App.css           # 스타일
+│   └── main.jsx          # 진입점
+├── .env                  # 환경 변수
+├── .gitignore           # Git 무시 파일
+├── package.json         # 프로젝트 설정
+├── vite.config.js       # Vite 설정
+├── tailwind.config.js   # TailwindCSS 설정
+├── eslint.config.js     # ESLint 설정
+└── README.md            # 프로젝트 문서
 ```
 
 ## 주요 기능 설명
@@ -393,17 +407,20 @@ src/
 - 피부타입 enum 관리 (건성, 지성, 복합성, 민감성, 중성)
 - 포인트 시스템
 - 검색 기능 (이름, 전화번호)
+- 상세보기 (예약 내역, 구매 내역)
 
 ### 상품 관리
 - 단일 상품 및 바우처 상품 구분
 - 활성/비활성 상태 토글
 - 가격 및 횟수 관리
 - 검색 기능
+- 상세보기 (예약 내역, 구매 내역, 매출 통계)
 
 ### 예약 관리
 - 고객 선택 → 상품 선택 → 예약 생성
 - 예약 상태 관리 (예약됨, 완료, 취소, 미방문)
 - 날짜 및 상태별 필터링
+- 원클릭 상태 변경
 
 ### 구매 내역
 - 고객별 구매 기록
