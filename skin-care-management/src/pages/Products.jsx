@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import { tables } from '../lib/supabase'
-import { Plus, Search, Edit, Trash2, Package, DollarSign, Tag, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Package, DollarSign, Tag, ToggleLeft, ToggleRight, Eye, Calendar, ShoppingCart, TrendingUp } from 'lucide-react'
 
 export default function Products() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [productAppointments, setProductAppointments] = useState([])
+  const [productPurchases, setProductPurchases] = useState([])
   const [editingProduct, setEditingProduct] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -98,6 +102,41 @@ export default function Products() {
     setShowAddModal(true)
   }
 
+  const handleViewDetails = async (product) => {
+    setSelectedProduct(product)
+    setShowDetailModal(true)
+    
+    try {
+      // 상품별 예약 내역 조회
+      const { data: appointmentsData, error: appointmentsError } = await tables.appointments()
+        .select(`
+          *,
+          customers(name, phone)
+        `)
+        .eq('product_id', product.id)
+        .order('datetime', { ascending: false })
+
+      if (!appointmentsError) {
+        setProductAppointments(appointmentsData || [])
+      }
+
+      // 상품별 구매 내역 조회
+      const { data: purchasesData, error: purchasesError } = await tables.purchases()
+        .select(`
+          *,
+          customers(name, phone)
+        `)
+        .eq('product_id', product.id)
+        .order('purchase_date', { ascending: false })
+
+      if (!purchasesError) {
+        setProductPurchases(purchasesData || [])
+      }
+    } catch (error) {
+      console.error('상품 상세 정보 조회 오류:', error)
+    }
+  }
+
   const handleToggleStatus = async (product) => {
     try {
       const newStatus = product.status === 'active' ? 'inactive' : 'active'
@@ -138,6 +177,36 @@ export default function Products() {
     { value: 'inactive', label: '비활성' }
   ]
 
+  const getTypeLabel = (type) => {
+    const option = typeOptions.find(opt => opt.value === type)
+    return option ? option.label : type
+  }
+
+  const getStatusLabel = (status) => {
+    const option = statusOptions.find(opt => opt.value === status)
+    return option ? option.label : status
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('ko-KR')
+  }
+
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return '-'
+    return new Date(dateTimeString).toLocaleString('ko-KR')
+  }
+
+  const calculateTotalRevenue = () => {
+    return products.reduce((total, product) => {
+      return total + (product.price || 0)
+    }, 0)
+  }
+
+  const getActiveProductsCount = () => {
+    return products.filter(product => product.status === 'active').length
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -148,30 +217,81 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">상품 관리</h1>
+      {/* 헤더 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">상품 관리</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            총 {products.length}개의 상품이 등록되어 있습니다.
+          </p>
+        </div>
         <button
-          onClick={() => {
-            setEditingProduct(null)
-            resetForm()
-            setShowAddModal(true)
-          }}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          onClick={() => setShowAddModal(true)}
+          className="btn-primary"
         >
           <Plus className="h-4 w-4 mr-2" />
           상품 추가
         </button>
       </div>
 
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Package className="h-6 w-6 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">전체 상품</dt>
+                  <dd className="text-lg font-medium text-gray-900">{products.length}개</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-6 w-6 text-green-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">활성 상품</dt>
+                  <dd className="text-lg font-medium text-gray-900">{getActiveProductsCount()}개</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <DollarSign className="h-6 w-6 text-yellow-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">총 상품 가치</dt>
+                  <dd className="text-lg font-medium text-gray-900">{calculateTotalRevenue().toLocaleString()}원</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 검색 */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
         <input
           type="text"
-          placeholder="상품명, 설명으로 검색..."
+          placeholder="상품명 또는 설명으로 검색..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          className="input-field pl-10"
         />
       </div>
 
@@ -179,86 +299,91 @@ export default function Products() {
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
           {filteredProducts.map((product) => (
-            <li key={product.id}>
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <Package className="h-5 w-5 text-primary-600" />
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="flex items-center">
-                        <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                        <div className="ml-2 flex items-center">
-                          <DollarSign className="h-4 w-4 text-green-500" />
-                          <span className="text-sm text-gray-500 ml-1">₩{product.price?.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <Tag className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-500 ml-1">
-                          {typeOptions.find(option => option.value === product.type)?.label}
-                        </span>
-                        {product.type === 'voucher' && (
-                          <span className="text-sm text-gray-500 ml-2">({product.count}회)</span>
-                        )}
-                      </div>
-                      {product.description && (
-                        <p className="text-sm text-gray-600 mt-1">{product.description}</p>
-                      )}
+            <li key={product.id} className="px-6 py-4 hover:bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                      <Package className="h-5 w-5 text-primary-600" />
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleToggleStatus(product)}
-                      className={`p-1 rounded ${
-                        product.status === 'active' 
-                          ? 'text-green-600 hover:text-green-900' 
-                          : 'text-red-600 hover:text-red-900'
-                      }`}
-                      title={product.status === 'active' ? '비활성화' : '활성화'}
-                    >
-                      {product.status === 'active' ? (
-                        <ToggleRight className="h-4 w-4" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {product.name}
+                      </p>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {getStatusLabel(product.status)}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-4 mt-1">
+                      <div className="flex items-center space-x-1">
+                        <DollarSign className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-500">
+                          {product.price?.toLocaleString()}원
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Tag className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-500">
+                          {getTypeLabel(product.type)}
+                        </span>
+                      </div>
+                      {product.type === 'voucher' && product.count && (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-sm text-gray-500">
+                            {product.count}회
+                          </span>
+                        </div>
                       )}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    </div>
+                    {product.description && (
+                      <p className="text-sm text-gray-600 mt-1 truncate">
+                        {product.description}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="mt-2">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    product.status === 'active' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {statusOptions.find(option => option.value === product.status)?.label}
-                  </span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleViewDetails(product)}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="상세보기"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="text-gray-400 hover:text-blue-600"
+                    title="수정"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(product)}
+                    className="text-gray-400 hover:text-yellow-600"
+                    title={product.status === 'active' ? '비활성화' : '활성화'}
+                  >
+                    {product.status === 'active' ? (
+                      <ToggleLeft className="h-5 w-5" />
+                    ) : (
+                      <ToggleRight className="h-5 w-5" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="text-gray-400 hover:text-red-600"
+                    title="삭제"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             </li>
           ))}
         </ul>
-        
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">상품 데이터가 없습니다.</p>
-          </div>
-        )}
       </div>
 
       {/* 상품 추가/수정 모달 */}
@@ -271,35 +396,32 @@ export default function Products() {
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">상품명 *</label>
+                  <label className="block text-sm font-medium text-gray-700">상품명</label>
                   <input
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="input-field"
                   />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">가격 *</label>
+                  <label className="block text-sm font-medium text-gray-700">가격</label>
                   <input
                     type="number"
+                    min="0"
                     required
                     value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder="0"
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="input-field"
                   />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">유형 *</label>
+                  <label className="block text-sm font-medium text-gray-700">상품 타입</label>
                   <select
-                    required
                     value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="input-field"
                   >
                     {typeOptions.map(option => (
                       <option key={option.value} value={option.value}>
@@ -308,27 +430,24 @@ export default function Products() {
                     ))}
                   </select>
                 </div>
-                
                 {formData.type === 'voucher' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">횟수 *</label>
+                    <label className="block text-sm font-medium text-gray-700">횟수</label>
                     <input
                       type="number"
-                      required
+                      min="1"
                       value={formData.count}
-                      onChange={(e) => setFormData({...formData, count: e.target.value})}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                      placeholder="0"
+                      onChange={(e) => setFormData({ ...formData, count: e.target.value })}
+                      className="input-field"
                     />
                   </div>
                 )}
-                
                 <div>
                   <label className="block text-sm font-medium text-gray-700">상태</label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="input-field"
                   >
                     {statusOptions.map(option => (
                       <option key={option.value} value={option.value}>
@@ -337,18 +456,16 @@ export default function Products() {
                     ))}
                   </select>
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-gray-700">설명</label>
                   <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows={3}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows="3"
+                    className="input-field"
                   />
                 </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="flex justify-end space-x-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -356,18 +473,161 @@ export default function Products() {
                       setEditingProduct(null)
                       resetForm()
                     }}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    className="btn-secondary"
                   >
                     취소
                   </button>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
+                  <button type="submit" className="btn-primary">
                     {editingProduct ? '수정' : '추가'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 상품 상세보기 모달 */}
+      {showDetailModal && selectedProduct && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {selectedProduct.name} 상품 상세정보
+                </h3>
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <span className="sr-only">닫기</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 상품 기본 정보 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">기본 정보</h4>
+                  <div className="space-y-2">
+                    <div><span className="font-medium">상품명:</span> {selectedProduct.name}</div>
+                    <div><span className="font-medium">가격:</span> {selectedProduct.price?.toLocaleString()}원</div>
+                    <div><span className="font-medium">타입:</span> {getTypeLabel(selectedProduct.type)}</div>
+                    {selectedProduct.type === 'voucher' && selectedProduct.count && (
+                      <div><span className="font-medium">횟수:</span> {selectedProduct.count}회</div>
+                    )}
+                    <div><span className="font-medium">상태:</span> {getStatusLabel(selectedProduct.status)}</div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">통계</h4>
+                  <div className="space-y-2">
+                    <div><span className="font-medium">예약 횟수:</span> {productAppointments.length}회</div>
+                    <div><span className="font-medium">구매 횟수:</span> {productPurchases.length}회</div>
+                    <div><span className="font-medium">총 매출:</span> {
+                      (selectedProduct.price * (productAppointments.length + productPurchases.length))?.toLocaleString()
+                    }원</div>
+                    {selectedProduct.description && (
+                      <div>
+                        <span className="font-medium">설명:</span>
+                        <p className="text-sm text-gray-600 mt-1">{selectedProduct.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 예약 내역 */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  예약 내역 ({productAppointments.length}건)
+                </h4>
+                <div className="bg-white border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고객</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">전화번호</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {productAppointments.map((appointment) => (
+                        <tr key={appointment.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDateTime(appointment.datetime)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {appointment.customers?.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {appointment.customers?.phone}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              appointment.status === 'no-show' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {appointment.status === 'scheduled' ? '예약됨' :
+                               appointment.status === 'completed' ? '완료' :
+                               appointment.status === 'cancelled' ? '취소' :
+                               appointment.status === 'no-show' ? '미방문' : appointment.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 구매 내역 */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  구매 내역 ({productPurchases.length}건)
+                </h4>
+                <div className="bg-white border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">구매일</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">고객</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">전화번호</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수량</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">총액</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {productPurchases.map((purchase) => (
+                        <tr key={purchase.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(purchase.purchase_date)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {purchase.customers?.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {purchase.customers?.phone}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {purchase.quantity}개
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {(selectedProduct.price * purchase.quantity)?.toLocaleString()}원
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
