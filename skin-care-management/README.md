@@ -48,7 +48,7 @@ npm run dev
 
 ## 배포
 
-### GitHub Pages 배포
+### GitHub Pages 배포 (Main 브랜치)
 
 1. **GitHub 저장소 생성**
    - GitHub에서 새 저장소를 생성하세요
@@ -70,16 +70,17 @@ npm run dev
    git push -u origin main
    ```
 
-4. **GitHub Pages 배포**
+4. **GitHub Pages 설정**
+   - GitHub 저장소 설정에서 Pages 섹션으로 이동
+   - Source를 "Deploy from a branch"로 설정
+   - Branch를 "main"으로 설정
+   - Folder를 "/ (root)"로 설정
+   - Save 클릭
+
+5. **배포 실행**
    ```bash
    npm run deploy
    ```
-
-5. **GitHub Pages 설정**
-   - GitHub 저장소 설정에서 Pages 섹션으로 이동
-   - Source를 "Deploy from a branch"로 설정
-   - Branch를 "gh-pages"로 설정
-   - Save 클릭
 
 6. **배포 확인**
    - 몇 분 후 `https://your-username.github.io/skin-care-management`에서 앱이 실행되는지 확인
