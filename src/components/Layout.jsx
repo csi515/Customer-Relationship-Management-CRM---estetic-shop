@@ -4,10 +4,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { 
   Home, 
   Users, 
-  Activity, 
+  Package,
   Calendar, 
+  ShoppingCart,
   DollarSign, 
-  UserCheck, 
   Settings as SettingsIcon,
   Menu,
   X,
@@ -17,10 +17,10 @@ import {
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: Home },
   { name: '고객 관리', href: '/customers', icon: Users },
-  { name: '시술 내역', href: '/treatments', icon: Activity },
+  { name: '상품 관리', href: '/products', icon: Package },
   { name: '예약 관리', href: '/reservations', icon: Calendar },
-  { name: '수입/지출', href: '/transactions', icon: DollarSign },
-  { name: '직원 관리', href: '/employees', icon: UserCheck },
+  { name: '구매 내역', href: '/purchases', icon: ShoppingCart },
+  { name: '재무 관리', href: '/transactions', icon: DollarSign },
   { name: '설정', href: '/settings', icon: SettingsIcon },
 ]
 

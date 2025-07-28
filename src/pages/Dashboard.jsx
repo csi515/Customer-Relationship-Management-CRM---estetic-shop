@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { tables } from '../lib/supabase'
-import { Users, Activity, Calendar, DollarSign, TrendingUp, TrendingDown } from 'lucide-react'
+import { tables, functions } from '../lib/supabase'
+import { Users, Package, Calendar, DollarSign, TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function Dashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState({
     totalCustomers: 0,
-    totalTreatments: 0,
-    totalReservations: 0,
-    monthlyRevenue: 0,
+    totalProducts: 0,
+    totalAppointments: 0,
+    monthlyIncome: 0,
     monthlyExpenses: 0
   })
   const [loading, setLoading] = useState(true)
@@ -24,37 +24,28 @@ export default function Dashboard() {
       const { count: customerCount } = await tables.customers()
         .select('*', { count: 'exact', head: true })
 
-      // 시술 내역 수 조회
-      const { count: treatmentCount } = await tables.treatments()
+      // 상품 수 조회
+      const { count: productCount } = await tables.products()
         .select('*', { count: 'exact', head: true })
 
       // 예약 수 조회
-      const { count: reservationCount } = await tables.reservations()
+      const { count: appointmentCount } = await tables.appointments()
         .select('*', { count: 'exact', head: true })
 
-      // 이번 달 수입 조회
+      // 이번 달 재무 조회
       const currentDate = new Date()
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-
-      const { data: monthlyTransactions } = await tables.transactions()
-        .select('amount, type')
-        .gte('created_at', firstDayOfMonth.toISOString())
-        .lte('created_at', lastDayOfMonth.toISOString())
-
-      const monthlyRevenue = monthlyTransactions
-        ?.filter(t => t.type === 'income')
-        ?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0
-
-      const monthlyExpenses = monthlyTransactions
-        ?.filter(t => t.type === 'expense')
-        ?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0
+      const monthYear = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+      
+      const { data: monthlyStats } = await functions.getMonthlyFinanceStats(monthYear)
+      
+      const monthlyIncome = monthlyStats?.reduce((sum, stat) => sum + (stat.income_total || 0), 0) || 0
+      const monthlyExpenses = monthlyStats?.reduce((sum, stat) => sum + (stat.expense_total || 0), 0) || 0
 
       setStats({
         totalCustomers: customerCount || 0,
-        totalTreatments: treatmentCount || 0,
-        totalReservations: reservationCount || 0,
-        monthlyRevenue,
+        totalProducts: productCount || 0,
+        totalAppointments: appointmentCount || 0,
+        monthlyIncome,
         monthlyExpenses
       })
     } catch (error) {
@@ -74,16 +65,16 @@ export default function Dashboard() {
       changeType: 'increase'
     },
     {
-      name: '총 시술 수',
-      value: stats.totalTreatments,
-      icon: Activity,
+      name: '총 상품 수',
+      value: stats.totalProducts,
+      icon: Package,
       color: 'bg-green-500',
       change: '+8%',
       changeType: 'increase'
     },
     {
       name: '예약 수',
-      value: stats.totalReservations,
+      value: stats.totalAppointments,
       icon: Calendar,
       color: 'bg-purple-500',
       change: '+5%',
@@ -91,7 +82,7 @@ export default function Dashboard() {
     },
     {
       name: '이번 달 수익',
-      value: `₩${stats.monthlyRevenue.toLocaleString()}`,
+      value: `₩${stats.monthlyIncome.toLocaleString()}`,
       icon: DollarSign,
       color: 'bg-yellow-500',
       change: '+15%',
@@ -171,7 +162,7 @@ export default function Dashboard() {
               <span className="ml-2 text-sm font-medium text-green-600">수익</span>
             </div>
             <p className="text-2xl font-bold text-green-900 mt-2">
-              ₩{stats.monthlyRevenue.toLocaleString()}
+              ₩{stats.monthlyIncome.toLocaleString()}
             </p>
           </div>
           <div className="bg-red-50 p-4 rounded-lg">
@@ -186,7 +177,7 @@ export default function Dashboard() {
         </div>
         <div className="mt-4 pt-4 border-t border-gray-200">
           <p className="text-lg font-semibold text-gray-900">
-            순이익: ₩{(stats.monthlyRevenue - stats.monthlyExpenses).toLocaleString()}
+            순이익: ₩{(stats.monthlyIncome - stats.monthlyExpenses).toLocaleString()}
           </p>
         </div>
       </div>

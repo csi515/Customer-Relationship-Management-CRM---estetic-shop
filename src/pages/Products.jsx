@@ -1,36 +1,36 @@
 import { useState, useEffect } from 'react'
 import { tables } from '../lib/supabase'
-import { Plus, Search, Edit, Trash2, Phone, Mail, Calendar, Gift } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Package, DollarSign, Tag } from 'lucide-react'
 
-export default function Customers() {
-  const [customers, setCustomers] = useState([])
+export default function Products() {
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [editingCustomer, setEditingCustomer] = useState(null)
+  const [editingProduct, setEditingProduct] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
-    birth_date: '',
-    skin_type: '',
-    memo: '',
-    point: 0
+    price: '',
+    type: 'single',
+    count: '',
+    status: 'active',
+    description: ''
   })
 
   useEffect(() => {
-    fetchCustomers()
+    fetchProducts()
   }, [])
 
-  const fetchCustomers = async () => {
+  const fetchProducts = async () => {
     try {
-      const { data, error } = await tables.customers()
+      const { data, error } = await tables.products()
         .select('*')
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setCustomers(data || [])
+      setProducts(data || [])
     } catch (error) {
-      console.error('고객 목록 조회 오류:', error)
+      console.error('상품 목록 조회 오류:', error)
     } finally {
       setLoading(false)
     }
@@ -40,54 +40,60 @@ export default function Customers() {
     e.preventDefault()
     
     try {
-      if (editingCustomer) {
+      const submitData = {
+        ...formData,
+        price: parseInt(formData.price),
+        count: formData.type === 'voucher' ? parseInt(formData.count) : null
+      }
+
+      if (editingProduct) {
         // 수정
-        const { error } = await tables.customers()
-          .update(formData)
-          .eq('id', editingCustomer.id)
+        const { error } = await tables.products()
+          .update(submitData)
+          .eq('id', editingProduct.id)
         
         if (error) throw error
       } else {
         // 추가
-        const { error } = await tables.customers()
-          .insert([formData])
+        const { error } = await tables.products()
+          .insert([submitData])
         
         if (error) throw error
       }
       
       setShowAddModal(false)
-      setEditingCustomer(null)
+      setEditingProduct(null)
       resetForm()
-      fetchCustomers()
+      fetchProducts()
     } catch (error) {
-      console.error('고객 저장 오류:', error)
+      console.error('상품 저장 오류:', error)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('정말로 이 고객을 삭제하시겠습니까?')) return
+    if (!confirm('정말로 이 상품을 삭제하시겠습니까?')) return
     
     try {
-      const { error } = await tables.customers()
+      const { error } = await tables.products()
         .delete()
         .eq('id', id)
       
       if (error) throw error
-      fetchCustomers()
+      fetchProducts()
     } catch (error) {
-      console.error('고객 삭제 오류:', error)
+      console.error('상품 삭제 오류:', error)
     }
   }
 
-  const handleEdit = (customer) => {
-    setEditingCustomer(customer)
+  const handleEdit = (product) => {
+    setEditingProduct(product)
     setFormData({
-      name: customer.name || '',
-      phone: customer.phone || '',
-      birth_date: customer.birth_date || '',
-      skin_type: customer.skin_type || '',
-      memo: customer.memo || '',
-      point: customer.point || 0
+      name: product.name || '',
+      price: product.price || '',
+      type: product.type || 'single',
+      count: product.count || '',
+      status: product.status || 'active',
+      description: product.description || ''
     })
     setShowAddModal(true)
   }
@@ -95,25 +101,27 @@ export default function Customers() {
   const resetForm = () => {
     setFormData({
       name: '',
-      phone: '',
-      birth_date: '',
-      skin_type: '',
-      memo: '',
-      point: 0
+      price: '',
+      type: 'single',
+      count: '',
+      status: 'active',
+      description: ''
     })
   }
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.includes(searchTerm)
+  const filteredProducts = products.filter(product =>
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const skinTypeOptions = [
-    { value: 'dry', label: '건성' },
-    { value: 'oily', label: '지성' },
-    { value: 'combination', label: '복합성' },
-    { value: 'sensitive', label: '민감성' },
-    { value: 'normal', label: '중성' }
+  const typeOptions = [
+    { value: 'single', label: '단일 시술' },
+    { value: 'voucher', label: '바우처' }
+  ]
+
+  const statusOptions = [
+    { value: 'active', label: '활성' },
+    { value: 'inactive', label: '비활성' }
   ]
 
   if (loading) {
@@ -127,17 +135,17 @@ export default function Customers() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">고객 관리</h1>
+        <h1 className="text-2xl font-bold text-gray-900">상품 관리</h1>
         <button
           onClick={() => {
-            setEditingCustomer(null)
+            setEditingProduct(null)
             resetForm()
             setShowAddModal(true)
           }}
           className="btn-primary flex items-center"
         >
           <Plus className="h-4 w-4 mr-2" />
-          고객 추가
+          상품 추가
         </button>
       </div>
 
@@ -146,36 +154,36 @@ export default function Customers() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
         <input
           type="text"
-          placeholder="고객명, 전화번호로 검색..."
+          placeholder="상품명, 설명으로 검색..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="input-field pl-10"
         />
       </div>
 
-      {/* 고객 목록 */}
+      {/* 상품 목록 */}
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  고객명
+                  상품명
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  연락처
+                  가격
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  생일
+                  유형
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  피부타입
+                  횟수
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  포인트
+                  상태
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  메모
+                  설명
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   작업
@@ -183,48 +191,58 @@ export default function Customers() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCustomers.map((customer) => (
-                <tr key={customer.id} className="hover:bg-gray-50">
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center">
-                      <Phone className="h-3 w-3 mr-1" />
-                      {customer.phone}
+                    <div className="text-sm font-medium text-gray-900 flex items-center">
+                      <Package className="h-4 w-4 mr-2" />
+                      {product.name}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {customer.birth_date}
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      ₩{product.price?.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {skinTypeOptions.find(option => option.value === customer.skin_type)?.label || customer.skin_type}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      product.type === 'voucher' 
+                        ? 'bg-purple-100 text-purple-800' 
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {typeOptions.find(option => option.value === product.type)?.label}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 flex items-center">
-                      <Gift className="h-3 w-3 mr-1" />
-                      {customer.point || 0}P
+                      <Tag className="h-3 w-3 mr-1" />
+                      {product.type === 'voucher' ? `${product.count}회` : '1회'}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      product.status === 'active' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {statusOptions.find(option => option.value === product.status)?.label}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 max-w-xs truncate">
-                      {customer.memo}
+                      {product.description}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => handleEdit(customer)}
+                      onClick={() => handleEdit(product)}
                       className="text-primary-600 hover:text-primary-900 mr-3"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(customer.id)}
+                      onClick={() => handleDelete(product.id)}
                       className="text-red-600 hover:text-red-900"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -236,24 +254,24 @@ export default function Customers() {
           </table>
         </div>
         
-        {filteredCustomers.length === 0 && (
+        {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">고객 데이터가 없습니다.</p>
+            <p className="text-gray-500">상품 데이터가 없습니다.</p>
           </div>
         )}
       </div>
 
-      {/* 고객 추가/수정 모달 */}
+      {/* 상품 추가/수정 모달 */}
       {showAddModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {editingCustomer ? '고객 정보 수정' : '새 고객 추가'}
+                {editingProduct ? '상품 정보 수정' : '새 상품 추가'}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">고객명 *</label>
+                  <label className="block text-sm font-medium text-gray-700">상품명 *</label>
                   <input
                     type="text"
                     required
@@ -264,35 +282,55 @@ export default function Customers() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">전화번호 *</label>
+                  <label className="block text-sm font-medium text-gray-700">가격 *</label>
                   <input
-                    type="tel"
+                    type="number"
                     required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
                     className="input-field"
+                    placeholder="0"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">생일</label>
-                  <input
-                    type="date"
-                    value={formData.birth_date}
-                    onChange={(e) => setFormData({...formData, birth_date: e.target.value})}
-                    className="input-field"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">피부타입</label>
+                  <label className="block text-sm font-medium text-gray-700">유형 *</label>
                   <select
-                    value={formData.skin_type}
-                    onChange={(e) => setFormData({...formData, skin_type: e.target.value})}
+                    required
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
                     className="input-field"
                   >
-                    <option value="">선택하세요</option>
-                    {skinTypeOptions.map(option => (
+                    {typeOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {formData.type === 'voucher' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">횟수 *</label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.count}
+                      onChange={(e) => setFormData({...formData, count: e.target.value})}
+                      className="input-field"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">상태</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    className="input-field"
+                  >
+                    {statusOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -301,21 +339,10 @@ export default function Customers() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">포인트</label>
-                  <input
-                    type="number"
-                    value={formData.point}
-                    onChange={(e) => setFormData({...formData, point: parseInt(e.target.value) || 0})}
-                    className="input-field"
-                    placeholder="0"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">메모</label>
+                  <label className="block text-sm font-medium text-gray-700">설명</label>
                   <textarea
-                    value={formData.memo}
-                    onChange={(e) => setFormData({...formData, memo: e.target.value})}
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
                     rows={3}
                     className="input-field"
                   />
@@ -326,7 +353,7 @@ export default function Customers() {
                     type="button"
                     onClick={() => {
                       setShowAddModal(false)
-                      setEditingCustomer(null)
+                      setEditingProduct(null)
                       resetForm()
                     }}
                     className="btn-secondary"
@@ -334,7 +361,7 @@ export default function Customers() {
                     취소
                   </button>
                   <button type="submit" className="btn-primary">
-                    {editingCustomer ? '수정' : '추가'}
+                    {editingProduct ? '수정' : '추가'}
                   </button>
                 </div>
               </form>

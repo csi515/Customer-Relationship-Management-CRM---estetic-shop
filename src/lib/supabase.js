@@ -38,18 +38,48 @@ export const tables = {
   // 고객 테이블
   customers: () => supabase.from('customers'),
   
-  // 시술 내역 테이블
-  treatments: () => supabase.from('treatments'),
+  // 상품 테이블
+  products: () => supabase.from('products'),
   
   // 예약 테이블
-  reservations: () => supabase.from('reservations'),
+  appointments: () => supabase.from('appointments'),
   
-  // 수입/지출 테이블
-  transactions: () => supabase.from('transactions'),
+  // 구매 내역 테이블
+  purchases: () => supabase.from('purchases'),
   
-  // 직원 테이블
-  employees: () => supabase.from('employees'),
+  // 재무 테이블
+  finance: () => supabase.from('finance'),
   
-  // 지점 테이블
-  branches: () => supabase.from('branches')
+  // 설정 테이블
+  settings: () => supabase.from('settings')
+}
+
+// 뷰들
+export const views = {
+  // 예약 상세 정보 뷰
+  appointmentDetails: () => supabase.from('appointment_details'),
+  
+  // 재무 요약 뷰
+  financeSummary: () => supabase.from('finance_summary')
+}
+
+// 함수들
+export const functions = {
+  // 고객별 예약 조회
+  getCustomerAppointments: async (customerId) => {
+    const { data, error } = await supabase.rpc('get_customer_appointments', {
+      customer_uuid: customerId,
+      current_user_id: (await supabase.auth.getUser()).data.user?.id
+    })
+    return { data, error }
+  },
+
+  // 월별 재무 통계
+  getMonthlyFinanceStats: async (monthYear) => {
+    const { data, error } = await supabase.rpc('get_monthly_finance_stats', {
+      month_year: monthYear,
+      current_user_id: (await supabase.auth.getUser()).data.user?.id
+    })
+    return { data, error }
+  }
 }

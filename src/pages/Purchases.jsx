@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react'
 import { tables } from '../lib/supabase'
-import { Plus, Calendar, Clock, User, Phone, Package } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, User, Package, DollarSign, Calendar } from 'lucide-react'
 
-export default function Reservations() {
-  const [appointments, setAppointments] = useState([])
+export default function Purchases() {
+  const [purchases, setPurchases] = useState([])
   const [customers, setCustomers] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [editingAppointment, setEditingAppointment] = useState(null)
+  const [editingPurchase, setEditingPurchase] = useState(null)
   const [formData, setFormData] = useState({
     customer_id: '',
     product_id: '',
-    datetime: '',
-    memo: '',
-    status: 'scheduled'
+    quantity: 1
   })
 
   useEffect(() => {
@@ -23,16 +21,16 @@ export default function Reservations() {
 
   const fetchData = async () => {
     try {
-      // 예약 조회
-      const { data: appointmentsData, error: appointmentsError } = await tables.appointments()
+      // 구매 내역 조회
+      const { data: purchasesData, error: purchasesError } = await tables.purchases()
         .select(`
           *,
           customers(name, phone),
           products(name, price, type)
         `)
-        .order('datetime', { ascending: true })
+        .order('purchase_date', { ascending: false })
 
-      if (appointmentsError) throw appointmentsError
+      if (purchasesError) throw purchasesError
 
       // 고객 목록 조회
       const { data: customersData, error: customersError } = await tables.customers()
@@ -49,7 +47,7 @@ export default function Reservations() {
 
       if (productsError) throw productsError
 
-      setAppointments(appointmentsData || [])
+      setPurchases(purchasesData || [])
       setCustomers(customersData || [])
       setProducts(productsData || [])
     } catch (error) {
@@ -63,53 +61,56 @@ export default function Reservations() {
     e.preventDefault()
     
     try {
-      if (editingAppointment) {
+      const submitData = {
+        ...formData,
+        quantity: parseInt(formData.quantity)
+      }
+
+      if (editingPurchase) {
         // 수정
-        const { error } = await tables.appointments()
-          .update(formData)
-          .eq('id', editingAppointment.id)
+        const { error } = await tables.purchases()
+          .update(submitData)
+          .eq('id', editingPurchase.id)
         
         if (error) throw error
       } else {
         // 추가
-        const { error } = await tables.appointments()
-          .insert([formData])
+        const { error } = await tables.purchases()
+          .insert([submitData])
         
         if (error) throw error
       }
       
       setShowAddModal(false)
-      setEditingAppointment(null)
+      setEditingPurchase(null)
       resetForm()
       fetchData()
     } catch (error) {
-      console.error('예약 저장 오류:', error)
+      console.error('구매 내역 저장 오류:', error)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('정말로 이 예약을 삭제하시겠습니까?')) return
+    if (!confirm('정말로 이 구매 내역을 삭제하시겠습니까?')) return
     
     try {
-      const { error } = await tables.appointments()
+      const { error } = await tables.purchases()
         .delete()
         .eq('id', id)
       
       if (error) throw error
       fetchData()
     } catch (error) {
-      console.error('예약 삭제 오류:', error)
+      console.error('구매 내역 삭제 오류:', error)
     }
   }
 
-  const handleEdit = (appointment) => {
-    setEditingAppointment(appointment)
+  const handleEdit = (purchase) => {
+    setEditingPurchase(purchase)
     setFormData({
-      customer_id: appointment.customer_id || '',
-      product_id: appointment.product_id || '',
-      datetime: appointment.datetime ? new Date(appointment.datetime).toISOString().slice(0, 16) : '',
-      memo: appointment.memo || '',
-      status: appointment.status || 'scheduled'
+      customer_id: purchase.customer_id || '',
+      product_id: purchase.product_id || '',
+      quantity: purchase.quantity || 1
     })
     setShowAddModal(true)
   }
@@ -118,18 +119,13 @@ export default function Reservations() {
     setFormData({
       customer_id: '',
       product_id: '',
-      datetime: '',
-      memo: '',
-      status: 'scheduled'
+      quantity: 1
     })
   }
 
-  const statusOptions = [
-    { value: 'scheduled', label: '예약됨' },
-    { value: 'completed', label: '완료' },
-    { value: 'cancelled', label: '취소' },
-    { value: 'no-show', label: '미방문' }
-  ]
+  const calculateTotal = (purchase) => {
+    return (purchase.products?.price || 0) * (purchase.quantity || 1)
+  }
 
   if (loading) {
     return (
@@ -142,21 +138,21 @@ export default function Reservations() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">예약 관리</h1>
+        <h1 className="text-2xl font-bold text-gray-900">구매 내역</h1>
         <button
           onClick={() => {
-            setEditingAppointment(null)
+            setEditingPurchase(null)
             resetForm()
             setShowAddModal(true)
           }}
           className="btn-primary flex items-center"
         >
           <Plus className="h-4 w-4 mr-2" />
-          예약 추가
+          구매 추가
         </button>
       </div>
 
-      {/* 예약 목록 */}
+      {/* 구매 내역 목록 */}
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -166,16 +162,19 @@ export default function Reservations() {
                   고객명
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  예약일시
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   상품
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  상태
+                  수량
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  메모
+                  단가
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  총액
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  구매일
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   작업
@@ -183,64 +182,60 @@ export default function Reservations() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {appointments.map((appointment) => (
-                <tr key={appointment.id} className="hover:bg-gray-50">
+              {purchases.map((purchase) => (
+                <tr key={purchase.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 flex items-center">
                       <User className="h-4 w-4 mr-2" />
-                      {appointment.customers?.name}
+                      {purchase.customers?.name}
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center">
-                      <Phone className="h-3 w-3 mr-1" />
-                      {appointment.customers?.phone}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {new Date(appointment.datetime).toLocaleDateString()}
-                    </div>
-                    <div className="text-sm text-gray-500 flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {new Date(appointment.datetime).toLocaleTimeString()}
+                    <div className="text-sm text-gray-500">
+                      {purchase.customers?.phone}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 flex items-center">
                       <Package className="h-4 w-4 mr-2" />
-                      {appointment.products?.name}
+                      {purchase.products?.name}
                     </div>
                     <div className="text-sm text-gray-500">
-                      ₩{appointment.products?.price?.toLocaleString()}
+                      {purchase.products?.type === 'voucher' ? '바우처' : '단일 시술'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                      appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {statusOptions.find(option => option.value === appointment.status)?.label}
-                    </span>
+                    <div className="text-sm text-gray-900">
+                      {purchase.quantity}개
+                    </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 max-w-xs truncate">
-                      {appointment.memo}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 flex items-center">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      ₩{purchase.products?.price?.toLocaleString()}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      ₩{calculateTotal(purchase).toLocaleString()}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 flex items-center">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {new Date(purchase.purchase_date).toLocaleDateString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => handleEdit(appointment)}
+                      onClick={() => handleEdit(purchase)}
                       className="text-primary-600 hover:text-primary-900 mr-3"
                     >
-                      수정
+                      <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(appointment.id)}
+                      onClick={() => handleDelete(purchase.id)}
                       className="text-red-600 hover:text-red-900"
                     >
-                      삭제
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -249,20 +244,20 @@ export default function Reservations() {
           </table>
         </div>
         
-        {appointments.length === 0 && (
+        {purchases.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">예약 데이터가 없습니다.</p>
+            <p className="text-gray-500">구매 내역이 없습니다.</p>
           </div>
         )}
       </div>
 
-      {/* 예약 추가/수정 모달 */}
+      {/* 구매 내역 추가/수정 모달 */}
       {showAddModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {editingAppointment ? '예약 수정' : '새 예약 추가'}
+                {editingPurchase ? '구매 내역 수정' : '새 구매 내역 추가'}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -300,38 +295,15 @@ export default function Reservations() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">예약일시 *</label>
+                  <label className="block text-sm font-medium text-gray-700">수량 *</label>
                   <input
-                    type="datetime-local"
+                    type="number"
                     required
-                    value={formData.datetime}
-                    onChange={(e) => setFormData({...formData, datetime: e.target.value})}
+                    min="1"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({...formData, quantity: e.target.value})}
                     className="input-field"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">상태</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="input-field"
-                  >
-                    {statusOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">메모</label>
-                  <textarea
-                    value={formData.memo}
-                    onChange={(e) => setFormData({...formData, memo: e.target.value})}
-                    rows={3}
-                    className="input-field"
+                    placeholder="1"
                   />
                 </div>
                 
@@ -340,7 +312,7 @@ export default function Reservations() {
                     type="button"
                     onClick={() => {
                       setShowAddModal(false)
-                      setEditingAppointment(null)
+                      setEditingPurchase(null)
                       resetForm()
                     }}
                     className="btn-secondary"
@@ -348,7 +320,7 @@ export default function Reservations() {
                     취소
                   </button>
                   <button type="submit" className="btn-primary">
-                    {editingAppointment ? '수정' : '추가'}
+                    {editingPurchase ? '수정' : '추가'}
                   </button>
                 </div>
               </form>

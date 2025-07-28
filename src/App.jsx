@@ -3,10 +3,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
-import Treatments from './pages/Treatments'
+import Products from './pages/Products'
 import Reservations from './pages/Reservations'
+import Purchases from './pages/Purchases'
 import Transactions from './pages/Transactions'
-import Employees from './pages/Employees'
 import Settings from './pages/Settings'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -87,11 +87,11 @@ function AppRoutes() {
       />
       
       <Route 
-        path="/treatments" 
+        path="/products" 
         element={
           <ProtectedRoute>
             <Layout>
-              <Treatments />
+              <Products />
             </Layout>
           </ProtectedRoute>
         } 
@@ -109,22 +109,22 @@ function AppRoutes() {
       />
       
       <Route 
-        path="/transactions" 
+        path="/purchases" 
         element={
           <ProtectedRoute>
             <Layout>
-              <Transactions />
+              <Purchases />
             </Layout>
           </ProtectedRoute>
         } 
       />
       
       <Route 
-        path="/employees" 
+        path="/transactions" 
         element={
           <ProtectedRoute>
             <Layout>
-              <Employees />
+              <Transactions />
             </Layout>
           </ProtectedRoute>
         } 
