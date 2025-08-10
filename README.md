@@ -80,6 +80,34 @@
 - Node.js 18.0.0 이상
 - npm 또는 yarn
 
+### 환경변수 설정
+
+프로젝트를 실행하기 전에 Supabase 연결을 위한 환경변수를 설정해야 합니다.
+
+1. **`.env` 파일 생성**
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 다음 내용을 추가하세요:
+
+```bash
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# Authentication Configuration
+VITE_AUTH_REDIRECT_URL=http://localhost:3000
+VITE_AUTH_SITE_URL=http://localhost:3000
+
+# Development Configuration
+NODE_ENV=development
+VITE_APP_ENV=development
+```
+
+2. **Supabase 프로젝트 설정에서 값 가져오기**
+   - [Supabase Dashboard](https://supabase.com/dashboard)에 로그인
+   - 프로젝트 선택 또는 새 프로젝트 생성
+   - Settings > API에서 다음 정보를 복사:
+     - `Project URL` → `VITE_SUPABASE_URL`
+     - `anon public` → `VITE_SUPABASE_ANON_KEY`
+
 ### 설치 및 실행
 
 1. **저장소 복제**
@@ -93,7 +121,10 @@ cd yeouskin
 npm install
 ```
 
-3. **개발 서버 시작**
+3. **환경변수 설정**
+위의 "환경변수 설정" 섹션을 참고하여 `.env` 파일을 생성하세요.
+
+4. **개발 서버 시작**
 ```bash
 npm run dev
 ```
