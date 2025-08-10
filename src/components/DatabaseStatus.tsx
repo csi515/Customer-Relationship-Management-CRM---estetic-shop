@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
+import { getConnectionDiagnostics } from '../utils/connectionTest';
 
 interface ConnectionStatus {
   isConnected: boolean;
@@ -15,6 +16,7 @@ const DatabaseStatus: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [testResults, setTestResults] = useState<any[]>([]);
+  const [diagnostics, setDiagnostics] = useState<any>(null);
 
   useEffect(() => {
     checkConnection();
@@ -71,7 +73,9 @@ const DatabaseStatus: React.FC = () => {
         mode: import.meta.env.MODE,
         hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
         hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-        nodeEnv: import.meta.env.NODE_ENV
+        nodeEnv: import.meta.env.NODE_ENV,
+        origin: window.location.origin,
+        hostname: window.location.hostname
       };
       detailedResults.push({ test: '환경변수 확인', status: '✅', details: envInfo });
 
@@ -127,6 +131,18 @@ const DatabaseStatus: React.FC = () => {
     setTestResults(detailedResults);
   };
 
+  const runFullDiagnostics = async () => {
+    setIsLoading(true);
+    try {
+      const diag = await getConnectionDiagnostics();
+      setDiagnostics(diag);
+    } catch (error) {
+      console.error('진단 실행 오류:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getStatusColor = (isConnected: boolean) => {
     return isConnected ? 'text-green-600' : 'text-red-600';
   };
@@ -153,6 +169,12 @@ const DatabaseStatus: React.FC = () => {
           >
             상세 진단
           </button>
+          <button
+            onClick={runFullDiagnostics}
+            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-md text-sm"
+          >
+            전체 진단
+          </button>
         </div>
       </div>
 
@@ -168,6 +190,45 @@ const DatabaseStatus: React.FC = () => {
           <p className="text-red-600 text-sm">{status.error}</p>
         )}
       </div>
+
+      {/* 전체 진단 결과 */}
+      {diagnostics && (
+        <div className="mb-4 p-4 bg-purple-50 rounded-lg">
+          <h3 className="font-semibold text-purple-900 mb-2">전체 진단 결과</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <h4 className="font-medium text-purple-800">데이터베이스 연결</h4>
+              <p className={diagnostics.database.success ? 'text-green-600' : 'text-red-600'}>
+                {diagnostics.database.success ? '✅ 성공' : '❌ 실패'}
+              </p>
+              {diagnostics.database.error && (
+                <p className="text-red-600 text-xs">{diagnostics.database.error}</p>
+              )}
+            </div>
+            <div>
+              <h4 className="font-medium text-purple-800">네트워크 연결</h4>
+              <p className={diagnostics.network.success ? 'text-green-600' : 'text-red-600'}>
+                {diagnostics.network.success ? '✅ 성공' : '❌ 실패'}
+              </p>
+              {diagnostics.network.error && (
+                <p className="text-red-600 text-xs">{diagnostics.network.error}</p>
+              )}
+            </div>
+            <div>
+              <h4 className="font-medium text-purple-800">CORS 설정</h4>
+              <p className={diagnostics.cors.success ? 'text-green-600' : 'text-red-600'}>
+                {diagnostics.cors.success ? '✅ 성공' : '❌ 실패'}
+              </p>
+            </div>
+          </div>
+          <details className="mt-2">
+            <summary className="text-xs text-purple-600 cursor-pointer">상세 정보</summary>
+            <pre className="text-xs text-purple-700 mt-1 bg-white p-2 rounded border overflow-auto max-h-32">
+              {JSON.stringify(diagnostics, null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
 
       {/* 테스트 결과 */}
       <div className="space-y-2">
@@ -193,13 +254,13 @@ const DatabaseStatus: React.FC = () => {
       {/* 해결 방법 안내 */}
       {!status.isConnected && (
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h4 className="font-semibold text-yellow-800 mb-2">🔧 해결 방법:</h4>
+          <h4 className="font-semibold text-yellow-800 mb-2">🔧 Vercel 배포 문제 해결 방법:</h4>
           <ul className="text-sm text-yellow-700 space-y-1">
-            <li>• 인터넷 연결을 확인해주세요</li>
-            <li>• Supabase 프로젝트가 활성 상태인지 확인해주세요</li>
-            <li>• API 키가 올바른지 확인해주세요</li>
-            <li>• CORS 설정이 올바른지 확인해주세요</li>
-            <li>• 브라우저 캐시를 지우고 다시 시도해보세요</li>
+            <li>• Vercel 대시보드에서 환경변수 설정 확인</li>
+            <li>• <code>VITE_SUPABASE_URL</code>과 <code>VITE_SUPABASE_ANON_KEY</code> 설정</li>
+            <li>• Supabase 프로젝트의 CORS 설정 확인</li>
+            <li>• 브라우저 개발자 도구에서 네트워크 오류 확인</li>
+            <li>• Supabase 프로젝트가 활성 상태인지 확인</li>
           </ul>
         </div>
       )}

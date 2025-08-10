@@ -72,7 +72,9 @@ const CustomerManagement: React.FC = () => {
         name: product.name,
         description: product.description,
         price: product.price,
+        type: product.type || 'single',
         count: product.count,
+        status: product.status || 'active',
         category: product.category,
         createdAt: product.created_at,
         updatedAt: product.updated_at
@@ -99,6 +101,7 @@ const CustomerManagement: React.FC = () => {
         productId: purchase.product_id,
         quantity: purchase.quantity,
         purchaseDate: purchase.purchase_date,
+        totalPrice: purchase.total_price || 0,
         createdAt: purchase.created_at,
         updatedAt: purchase.updated_at
       }));

@@ -1,81 +1,107 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
-import { format, isSameDay, parseISO } from 'date-fns';
-import { Appointment, Customer, Product } from '../types';
+import { Appointment, Product } from '../types';
 
 interface CalendarPanelProps {
-  selectedDate: Date;
   appointments: Appointment[];
-  customers: Customer[];
   products: Product[];
   onDateSelect: (date: Date) => void;
+  onAppointmentSelect: (appointment: Appointment) => void;
 }
 
 const CalendarPanel: React.FC<CalendarPanelProps> = ({
-  selectedDate,
   appointments,
-  customers,
   products,
   onDateSelect,
+  onAppointmentSelect
 }) => {
-  // 날짜 선택 핸들러
-  const handleDateSelect = (value: any) => {
-    if (value instanceof Date) {
-      console.log('달력에서 선택된 날짜:', value);
-      onDateSelect(value);
-    } else if (Array.isArray(value) && value.length > 0 && value[0] instanceof Date) {
-      console.log('달력에서 선택된 날짜:', value[0]);
-      onDateSelect(value[0]);
-    }
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+    onDateSelect(date);
   };
 
-  // 달력 타일에 예약 요약 표시
+  const getAppointmentsForDate = (date: Date) => {
+    return appointments.filter(appointment => {
+      const appointmentDate = new Date(appointment.datetime);
+      return (
+        appointmentDate.getDate() === date.getDate() &&
+        appointmentDate.getMonth() === date.getMonth() &&
+        appointmentDate.getFullYear() === date.getFullYear()
+      );
+    });
+  };
+
   const tileContent = ({ date }: { date: Date }) => {
-    const dayAppointments = appointments
-      .filter(a => isSameDay(parseISO(a.datetime), date))
-      .sort((a, b) => parseISO(a.datetime).getTime() - parseISO(b.datetime).getTime());
+    const dayAppointments = getAppointmentsForDate(date);
     
     if (dayAppointments.length === 0) return null;
-    
+
     return (
-      <div className="mt-1 space-y-0.5">
-        {dayAppointments.slice(0, 4).map((a) => {
-          const customer = customers.find(c => c.id === a.customerId);
-          const product = products.find(p => p.id === a.productId);
-          const time = format(parseISO(a.datetime), 'HH:mm');
-          return (
-            <div key={a.id} className="text-xs bg-blue-100 rounded px-1 py-0.5">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-blue-800">{time}</span>
-                <span className="truncate ml-1">{customer?.name || '고객'}</span>
-              </div>
-            </div>
-          );
-        })}
-        {dayAppointments.length > 4 && (
-          <div className="text-xs text-gray-400">+{dayAppointments.length - 4}건</div>
-        )}
+      <div className="absolute bottom-1 right-1">
+        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
       </div>
     );
   };
 
+  const selectedDateAppointments = getAppointmentsForDate(selectedDate);
+
   return (
-    <div className="bg-white rounded-lg shadow p-6 h-full">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">예약 달력</h2>
-      </div>
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h2 className="text-xl font-semibold mb-4">📅 예약 캘린더</h2>
       
-      <div className="w-full">
-        <Calendar
-          value={selectedDate}
-          onChange={handleDateSelect}
-          tileContent={tileContent}
-          calendarType="gregory"
-          className="w-full border-none font-inherit"
-          tileClassName="h-24 p-2 relative min-w-[100px]"
-          navigationLabel={({ date }) => format(date, 'yyyy년 MM월')}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <Calendar
+            onChange={handleDateChange}
+            value={selectedDate}
+            tileContent={tileContent}
+            className="w-full"
+          />
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-semibold mb-3">
+            {selectedDate.toLocaleDateString('ko-KR', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })} 예약
+          </h3>
+          
+          {selectedDateAppointments.length === 0 ? (
+            <p className="text-gray-500">해당 날짜에 예약이 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {selectedDateAppointments.map(appointment => {
+                const product = products.find(p => p.id === appointment.productId);
+                return (
+                  <div
+                    key={appointment.id}
+                    className="p-3 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                    onClick={() => onAppointmentSelect(appointment)}
+                  >
+                    <div className="font-medium text-blue-900">
+                      {new Date(appointment.datetime).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                    <div className="text-sm text-blue-700">
+                      {product?.name || '상품명 없음'}
+                    </div>
+                    {appointment.memo && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        {appointment.memo}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

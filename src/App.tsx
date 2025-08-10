@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -52,16 +52,6 @@ const RoutingHandler: React.FC = () => {
 
   return null;
 };
-
-// 로딩 컴포넌트
-const LoadingFallback: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">로딩 중...</p>
-    </div>
-  </div>
-);
 
 // 에러 컴포넌트
 const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {

@@ -4,12 +4,12 @@
 
 > 이제 Vercel 배포에 최적화되었습니다. Vercel 프로젝트 환경변수에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 설정하고, 기본 빌드/출력(`npm run build`, `dist/`)으로 작동합니다. SPA 라우팅은 `vercel.json`의 rewrites로 처리됩니다.
 
-[![Deploy to GitHub Pages](https://github.com/csi515/yeouskin/actions/workflows/deploy.yml/badge.svg)](https://github.com/csi515/yeouskin/actions/workflows/deploy.yml)
-[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://csi515.github.io/yeouskin/)
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/csi515/yeouskin)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://yeouskin-crm.vercel.app/)
 
 ## 🚀 라이브 데모
 
-**👉 [CRM 시스템 체험하기](https://csi515.github.io/yeouskin/)**
+**👉 [CRM 시스템 체험하기](https://yeouskin-crm.vercel.app/)**
 
 ## 📋 프로젝트 소개
 
@@ -65,9 +65,9 @@
   - RESTful API
 
 ### 배포 & CI/CD
-- **GitHub Pages** - 정적 사이트 호스팅
-- **GitHub Actions** - 자동 배포
-- **Vercel** (옵션) - 대안 배포 플랫폼
+- **Vercel** - 정적 사이트 호스팅 및 자동 배포
+- **GitHub Actions** - CI/CD 파이프라인
+- **GitHub Pages** - 대안 배포 플랫폼
 
 ### 개발 도구
 - **ESLint** - 코드 품질
@@ -92,13 +92,9 @@
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
-# Authentication Configuration
-VITE_AUTH_REDIRECT_URL=http://localhost:3000
-VITE_AUTH_SITE_URL=http://localhost:3000
-
 # Development Configuration
-NODE_ENV=development
 VITE_APP_ENV=development
+VITE_APP_VERSION=1.0.0
 ```
 
 2. **Supabase 프로젝트 설정에서 값 가져오기**
@@ -129,7 +125,7 @@ npm install
 npm run dev
 ```
 
-4. **브라우저에서 확인**
+5. **브라우저에서 확인**
 ```
 http://localhost:3000
 ```
@@ -141,38 +137,49 @@ http://localhost:3000
 npm run build
 ```
 
-**GitHub Pages용 빌드:**
-```bash
-npm run build:github
-```
-
 ## 🌐 배포
 
-### GitHub Pages 자동 배포
+### Vercel 자동 배포 (권장)
 
-이 프로젝트는 **GitHub Actions**를 통해 자동으로 배포됩니다:
+이 프로젝트는 **Vercel**을 통해 자동으로 배포됩니다:
 
-1. `main` 브랜치에 코드 push
-2. GitHub Actions가 자동으로 빌드 및 배포
-3. **https://csi515.github.io/yeouskin/** 에서 확인
+1. **Vercel에 프로젝트 연결**
+   - [Vercel Dashboard](https://vercel.com/dashboard)에서 새 프로젝트 생성
+   - GitHub 저장소 연결
+   - 환경변수 설정:
+     - `VITE_SUPABASE_URL`
+     - `VITE_SUPABASE_ANON_KEY`
+
+2. **자동 배포**
+   - `main` 브랜치에 코드 push
+   - Vercel이 자동으로 빌드 및 배포
+   - **https://your-project.vercel.app/** 에서 확인
 
 ### 수동 배포
 
 ```bash
-# GitHub Pages용 빌드 및 배포
-npm run deploy
+# 프로덕션 빌드
+npm run build
+
+# Vercel CLI를 통한 배포
+npm i -g vercel
+vercel
 ```
 
 ## 🔧 설정
 
+### Vercel 환경변수 설정
+
+Vercel 대시보드에서 다음 환경변수를 설정하세요:
+
+1. **Project Settings** → **Environment Variables**
+2. 다음 변수 추가:
+   - `VITE_SUPABASE_URL`: `https://your-project-id.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY`: `your_supabase_anon_key`
+
 ### Supabase 연결
 
-이 프로젝트는 Supabase를 백엔드로 사용합니다. GitHub Pages 배포를 위해 연결 정보가 코드에 직접 설정되어 있습니다.
-
-개발 환경에서 다른 Supabase 프로젝트를 사용하려면:
-
-1. `src/utils/supabaseClient.ts` 파일 수정
-2. URL과 Anon Key를 본인의 Supabase 프로젝트 정보로 변경
+이 프로젝트는 Supabase를 백엔드로 사용합니다. 환경변수를 통해 연결 정보를 설정합니다.
 
 ## 📁 프로젝트 구조
 
@@ -191,7 +198,7 @@ src/
 │   ├── AuthContext.tsx
 │   └── SettingsContext.tsx
 ├── utils/              # 유틸리티 함수
-│   ├── supabase.ts
+│   ├── supabaseClient.ts
 │   └── ...
 ├── types/              # TypeScript 타입 정의
 └── ...
@@ -199,16 +206,16 @@ src/
 
 ## 🐛 해결된 주요 이슈
 
-### GitHub Pages 배포 최적화
-- ✅ **MIME Type 문제** 해결 (`.nojekyll` 파일 적용)
-- ✅ **React Router** HashRouter 적용
-- ✅ **환경변수** 하드코딩으로 런타임 의존성 제거
-- ✅ **Vite 빌드** IIFE 형식으로 호환성 향상
+### Vercel 배포 최적화
+- ✅ **ES 모듈 형식** 적용 (Vercel 권장)
+- ✅ **환경변수** Vercel 설정으로 분리
+- ✅ **SPA 라우팅** vercel.json rewrites로 처리
+- ✅ **빌드 최적화** ES2020 타겟으로 성능 향상
 
 ### 성능 최적화
 - ✅ **번들 크기** 최적화
-- ✅ **ES2015** 타겟으로 브라우저 호환성 확보
 - ✅ **코드 스플리팅** 적용
+- ✅ **프로덕션 최적화** (console.log 제거 등)
 
 ## 🤝 기여하기
 

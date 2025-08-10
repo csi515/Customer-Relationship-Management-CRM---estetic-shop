@@ -3,7 +3,8 @@ import { supabaseClient } from './supabaseClient';
 // 안전한 Supabase 클라이언트 내보내기
 export const supabase = supabaseClient;
 if (!supabase) {
-  console.error('x supabase 인스턴스 null');}
+  console.error('Supabase 인스턴스가 null입니다. 연결을 확인해주세요.');
+}
 
 // Supabase 클라이언트 초기화 상태 로깅 (개발 모드에서만)
 if (typeof window !== 'undefined' && import.meta.env.DEV) {

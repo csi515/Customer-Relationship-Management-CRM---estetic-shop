@@ -25,30 +25,27 @@ export default defineConfig(({ command, mode }) => ({
     outDir: 'dist',
     sourcemap: false,
     minify: 'terser',
-    target: 'es2015', // GitHub Pages 호환성을 위해 ES2015로 변경
+    target: 'es2020', // Vercel에 최적화된 타겟
     rollupOptions: {
       output: {
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        format: 'iife', // IIFE 형식으로 변경하여 MIME type 문제 해결
+        format: 'es', // ES 모듈 형식으로 변경 (Vercel 권장)
       },
     },
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true,
+        drop_console: mode === 'production',
+        drop_debugger: mode === 'production',
       },
     },
     chunkSizeWarningLimit: 1000,
-    copyPublicDir: true, // public 폴더의 .nojekyll 파일이 복사되도록 보장
+    copyPublicDir: true,
   },
   define: {
     global: 'globalThis',
-    'import.meta.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL || ''),
-    'import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''),
-    'import.meta.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || ''),
-    'import.meta.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || '')
+    // 환경변수는 Vercel에서 설정하므로 하드코딩 제거
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],

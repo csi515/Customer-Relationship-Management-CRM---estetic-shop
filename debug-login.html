@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 디버깅</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 로그인 디버깅 도구</h1>
+        
+        <div class="test-section">
+            <h3>1️⃣ Supabase 연결 확인</h3>
+            <button onclick="checkSupabaseConnection()">연결 테스트</button>
+            <div id="connection-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2️⃣ 환경변수 확인</h3>
+            <button onclick="checkEnvironment()">환경변수 확인</button>
+            <div id="env-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3️⃣ 로그인 테스트</h3>
+            <input type="email" id="email" placeholder="이메일" value="mychltjddlf@naver.com">
+            <input type="password" id="password" placeholder="비밀번호" value="123456">
+            <button onclick="testLogin()">로그인 테스트</button>
+            <div id="login-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4️⃣ 회원가입 테스트</h3>
+            <input type="email" id="signup-email" placeholder="회원가입 이메일" value="test@example.com">
+            <input type="password" id="signup-password" placeholder="회원가입 비밀번호" value="123456">
+            <input type="text" id="signup-name" placeholder="이름" value="테스트 사용자">
+            <button onclick="testSignup()">회원가입 테스트</button>
+            <div id="signup-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5️⃣ 네트워크 연결 테스트</h3>
+            <button onclick="testNetwork()">네트워크 테스트</button>
+            <div id="network-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 설정
+        const supabaseUrl = 'https://wysihrzbnxhfnymtnvzj.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5c2locnpibnhoZm55bXRudnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTI3MjUsImV4cCI6MjA2NjA4ODcyNX0.u4UNIJikLf529VE3TSSTBzngOQ_H6OHKaUeEwYa41fY';
+        
+        let supabase;
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function initializeSupabase() {
+            try {
+                if (window.supabase) {
+                    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (error) {
+                console.error('Supabase 초기화 오류:', error);
+                return false;
+            }
+        }
+
+        async function checkSupabaseConnection() {
+            const element = document.getElementById('connection-result');
+            element.innerHTML = '';
+            
+            log('connection-result', 'Supabase 연결 테스트 시작...', 'info');
+            
+            if (!initializeSupabase()) {
+                log('connection-result', '❌ Supabase 라이브러리 로드 실패', 'error');
+                return;
+            }
+            
+            log('connection-result', '✅ Supabase 라이브러리 로드 성공', 'success');
+            
+            try {
+                // 간단한 연결 테스트
+                const { data, error } = await supabase
+                    .from('customers')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    log('connection-result', `❌ 연결 실패: ${error.message}`, 'error');
+                    log('connection-result', `오류 코드: ${error.code}`, 'error');
+                } else {
+                    log('connection-result', '✅ Supabase 연결 성공!', 'success');
+                    log('connection-result', `응답 데이터: ${JSON.stringify(data)}`, 'info');
+                }
+            } catch (err) {
+                log('connection-result', `❌ 연결 오류: ${err.message}`, 'error');
+                log('connection-result', `오류 타입: ${err.constructor.name}`, 'error');
+            }
+        }
+
+        async function checkEnvironment() {
+            const element = document.getElementById('env-result');
+            element.innerHTML = '';
+            
+            log('env-result', '환경변수 확인 시작...', 'info');
+            log('env-result', `Supabase URL: ${supabaseUrl}`, 'info');
+            log('env-result', `Supabase Key: ${supabaseKey ? '설정됨' : '설정되지 않음'}`, 'info');
+            log('env-result', `브라우저: ${navigator.userAgent}`, 'info');
+            log('env-result', `온라인 상태: ${navigator.onLine}`, 'info');
+            
+            // Supabase 라이브러리 로드 확인
+            if (window.supabase) {
+                log('env-result', '✅ Supabase 라이브러리 로드됨', 'success');
+            } else {
+                log('env-result', '❌ Supabase 라이브러리 로드되지 않음', 'error');
+            }
+            
+            // Supabase 클라이언트 초기화
+            if (initializeSupabase()) {
+                log('env-result', '✅ Supabase 클라이언트 초기화 성공', 'success');
+            } else {
+                log('env-result', '❌ Supabase 클라이언트 초기화 실패', 'error');
+            }
+            
+            log('env-result', '환경변수 확인 완료!', 'success');
+        }
+
+        async function testLogin() {
+            const element = document.getElementById('login-result');
+            element.innerHTML = '';
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log('login-result', '로그인 테스트 시작...', 'info');
+            log('login-result', `이메일: ${email}`, 'info');
+            
+            if (!supabase) {
+                log('login-result', '❌ Supabase 클라이언트가 초기화되지 않았습니다.', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+
+                if (error) {
+                    log('login-result', `❌ 로그인 실패: ${error.message}`, 'error');
+                    log('login-result', `오류 코드: ${error.status}`, 'error');
+                } else {
+                    log('login-result', '✅ 로그인 성공!', 'success');
+                    log('login-result', `사용자 ID: ${data.user.id}`, 'info');
+                    log('login-result', `이메일: ${data.user.email}`, 'info');
+                    log('login-result', `세션: ${data.session ? '생성됨' : '없음'}`, 'info');
+                }
+            } catch (err) {
+                log('login-result', `❌ 로그인 오류: ${err.message}`, 'error');
+            }
+        }
+
+        async function testSignup() {
+            const element = document.getElementById('signup-result');
+            element.innerHTML = '';
+            
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const name = document.getElementById('signup-name').value;
+            
+            log('signup-result', '회원가입 테스트 시작...', 'info');
+            log('signup-result', `이메일: ${email}`, 'info');
+            log('signup-result', `이름: ${name}`, 'info');
+            
+            if (!supabase) {
+                log('signup-result', '❌ Supabase 클라이언트가 초기화되지 않았습니다.', 'error');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name,
+                            role: 'employee',
+                        },
+                    },
+                });
+
+                if (error) {
+                    log('signup-result', `❌ 회원가입 실패: ${error.message}`, 'error');
+                    log('signup-result', `오류 코드: ${error.status}`, 'error');
+                } else {
+                    log('signup-result', '✅ 회원가입 성공!', 'success');
+                    log('signup-result', `사용자 ID: ${data.user.id}`, 'info');
+                    log('signup-result', `이메일: ${data.user.email}`, 'info');
+                    log('signup-result', `확인 필요: ${data.user.email_confirmed_at ? '아니오' : '예'}`, 'warning');
+                }
+            } catch (err) {
+                log('signup-result', `❌ 회원가입 오류: ${err.message}`, 'error');
+            }
+        }
+
+        async function testNetwork() {
+            const element = document.getElementById('network-result');
+            element.innerHTML = '';
+            
+            log('network-result', '네트워크 연결 테스트 시작...', 'info');
+            
+            try {
+                // DNS 해석 테스트
+                const response = await fetch(supabaseUrl + '/rest/v1/', {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`
+                    }
+                });
+                
+                if (response.ok) {
+                    log('network-result', '✅ 네트워크 연결 성공!', 'success');
+                    log('network-result', `상태 코드: ${response.status}`, 'info');
+                } else {
+                    log('network-result', `❌ 네트워크 연결 실패: ${response.status}`, 'error');
+                }
+            } catch (err) {
+                log('network-result', `❌ 네트워크 오류: ${err.message}`, 'error');
+            }
+            
+            // ping 테스트 (간접적)
+            try {
+                const startTime = Date.now();
+                await fetch(supabaseUrl, { method: 'HEAD' });
+                const endTime = Date.now();
+                const pingTime = endTime - startTime;
+                log('network-result', `핑 시간: ${pingTime}ms`, 'info');
+            } catch (err) {
+                log('network-result', `핑 테스트 실패: ${err.message}`, 'error');
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            log('connection-result', '페이지 로드됨. 연결 테스트를 실행하세요.', 'info');
+            initializeSupabase();
+        };
+    </script>
+</body>
+</html> 

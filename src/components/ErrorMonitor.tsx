@@ -21,15 +21,15 @@ const ErrorMonitor: React.FC = () => {
       try {
         const response = await originalFetch(...args);
         if (!response.ok) {
-          const error: NetworkError = {
-            id: Date.now().toString(),
-            timestamp: new Date(),
-            url: typeof args[0] === 'string' ? args[0] : args[0].url,
-            status: response.status,
-            statusText: response.statusText,
-            type: 'fetch',
-            message: `Fetch 오류: ${response.status} ${response.statusText}`
-          };
+                  const error: NetworkError = {
+          id: Date.now().toString(),
+          timestamp: new Date(),
+          url: typeof args[0] === 'string' ? args[0] : (args[0] as Request).url,
+          status: response.status,
+          statusText: response.statusText,
+          type: 'fetch',
+          message: `Fetch 오류: ${response.status} ${response.statusText}`
+        };
           setErrors(prev => [error, ...prev.slice(0, 9)]); // 최대 10개 유지
         }
         return response;
@@ -37,7 +37,7 @@ const ErrorMonitor: React.FC = () => {
         const networkError: NetworkError = {
           id: Date.now().toString(),
           timestamp: new Date(),
-          url: typeof args[0] === 'string' ? args[0] : args[0].url,
+          url: typeof args[0] === 'string' ? args[0] : (args[0] as Request).url,
           status: 0,
           statusText: 'Network Error',
           type: 'fetch',
