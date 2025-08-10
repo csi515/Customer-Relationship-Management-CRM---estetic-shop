@@ -9,6 +9,9 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
 
+  // 로그인 페이지 비활성화 - 개발 모드에서만 적용
+  const isDevelopment = import.meta.env.DEV;
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
@@ -20,6 +23,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
+  // 개발 모드에서는 로그인 없이 접근 허용
+  if (isDevelopment) {
+    return <>{children}</>;
+  }
+
+  // 프로덕션 모드에서는 기존 로직 유지
   if (!user) {
     return <Navigate to="/login" replace />;
   }

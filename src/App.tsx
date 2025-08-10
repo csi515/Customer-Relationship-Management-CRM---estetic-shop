@@ -86,6 +86,9 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
 };
 
 function App() {
+  // 개발 모드 확인
+  const isDevelopment = import.meta.env.DEV;
+
   return (
     <ErrorBoundary fallback={<ErrorFallback />}>
       <SafeWrapper>
@@ -97,9 +100,13 @@ function App() {
             >
               <RoutingHandler />
               <Routes>
-                {/* 공개 라우트 */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+                {/* 개발 모드에서는 로그인 페이지 비활성화 */}
+                {!isDevelopment && (
+                  <>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                  </>
+                )}
                 
                 {/* 보호된 라우트 */}
                 <Route path="/" element={
